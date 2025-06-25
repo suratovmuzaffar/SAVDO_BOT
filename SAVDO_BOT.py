@@ -25,6 +25,7 @@ dp = Dispatcher(storage=MemoryStorage())
 
 # --- FOYDALI FUNKSIYALAR ---
 pending_deals = {}
+ended_deals = {}
 async def is_admin_or_owner(chat_id: int, user_id: int) -> bool:
     """Admin yoki owner ekanligini tekshiradi"""
     try:
