@@ -238,6 +238,9 @@ async def start_savdo(message: types.Message):
         oluvchi_id = int(parts[1])
         sotuvchi_id = int(parts[2])
         
+        faol_savdolar.add((oluvchi_id, sotuvchi_id))
+
+        
         # Foydalanuvchi ma'lumotlarini olish
         oluvchi_info = await get_user_info(oluvchi_id)
         sotuvchi_info = await get_user_info(sotuvchi_id)
@@ -377,6 +380,7 @@ async def end_savdo(message: types.Message):
         
         # Avtomatik mute qilish (bot o'zi komanda yubormaydi, to'g'ridan-to'g'ri funksiyani chaqiradi)
         await revoke_permissions(oluvchi_id, sotuvchi_id, message)
+        faol_savdolar.discard((oluvchi_id, sotuvchi_id))
     
     except ValueError:
         await message.answer("⚠️ ID raqamlar noto'g'ri!")
