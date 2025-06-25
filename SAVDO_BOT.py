@@ -279,7 +279,7 @@ async def on_roziman_clicked(call: types.CallbackQuery):
 # --- SAVDO TUGATILDI TUGMASI ---
 @dp.callback_query(F.data.startswith("savdo_end"))
 async def on_savdo_end_clicked(call: types.CallbackQuery):
-    """Savdo tugatildi tugmasi bosilganda - ikki tomon rozilik bildiradi"""
+    """Savdo tugatildi tugmasi bosilganda - tugmaning o'zini yangilaydi"""
     try:
         data_parts = call.data.split(":")
         oluvchi_id = int(data_parts[1])
@@ -288,7 +288,7 @@ async def on_savdo_end_clicked(call: types.CallbackQuery):
 
         deal_key = (oluvchi_id, sotuvchi_id)
 
-        # Global dictionary
+        # Global ended_deals dictionary
         global ended_deals
         if "ended_deals" not in globals():
             ended_deals = {}
@@ -303,31 +303,34 @@ async def on_savdo_end_clicked(call: types.CallbackQuery):
 
         # Allaqachon bosgan bo‘lsa
         if user_id in ended_deals[deal_key]:
-            await call.answer("⏳ Siz allaqachon rozilik bildirgansiz.", show_alert=True)
+            await call.answer("⏳ Siz allaqachon bosgansiz.", show_alert=True)
             return
 
-        # Rozilikni qo‘shamiz
+        # Rozilikni saqlaymiz
         ended_deals[deal_key].add(user_id)
 
-        # Kim bosganini chiqaramiz
-        if user_id == oluvchi_id:
-            await call.message.answer("📥 <b>Oluvchi savdoning tugaganiga rozi</b>")
-        elif user_id == sotuvchi_id:
-            await call.message.answer("📤 <b>Sotuvchi savdoning tugaganiga rozi</b>")
+        # Tugma matnini tayyorlaymiz
+        text = ""
+        if ended_deals[deal_key] == {oluvchi_id}:
+            text = "📥 Oluvchi rozi"
+        elif ended_deals[deal_key] == {sotuvchi_id}:
+            text = "📤 Sotuvchi rozi"
+        elif ended_deals[deal_key] == {oluvchi_id, sotuvchi_id}:
+            text = "✅ Oluvchi va Sotuvchi rozi"
 
-        # Agar ikkala tomon ham bosgan bo‘lsa
+        # Tugmani yangilaymiz
+        new_markup = InlineKeyboardMarkup(
+            inline_keyboard=[[
+                InlineKeyboardButton(text=text, callback_data=f"savdo_end:{oluvchi_id}:{sotuvchi_id}")
+            ]]
+        )
+        await call.message.edit_reply_markup(reply_markup=new_markup)
+
+        # Hammasi bosilgan bo‘lsa – dictni tozalaymiz
         if len(ended_deals[deal_key]) == 2:
-            await call.message.answer(f"""
-✅ <b>SAVDO YAKUNLANDI!</b>
-
-📋 <b>Oluvchi:</b> <a href='tg://user?id={oluvchi_id}'>OLUVCHI</a>
-📋 <b>Sotuvchi:</b> <a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a>
-
-🔒 Har ikki tomon savdoning tugaganiga rozilik bildirdi.
-            """)
             del ended_deals[deal_key]
 
-        await call.answer("✅ Rozilik qabul qilindi!", show_alert=True)
+        await call.answer("✅ Qabul qilindi")
 
     except Exception as e:
         await call.answer(f"❌ Xatolik: {str(e)}", show_alert=True)
