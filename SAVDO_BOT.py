@@ -350,50 +350,62 @@ async def start_sotuvchi(message: types.Message):
     except Exception as e:
         await message.answer(f"❌ Xatolik: {str(e)}")
 
-# --- SAVDONI TUGATISH ---
-@dp.message(Command("endSavdo"))
-async def end_savdo(message: types.Message):
-    """Savdo jarayonini tugatadi"""
-    # Faqat admin va owner uchun
-    if not await is_admin_or_owner(message.chat.id, message.from_user.id):
-        return await message.answer("❌ Faqat adminlar va ownerlar uchun!")
-    
+# --- SAVDO TUGATILDI TUGMASI --- (YANGILANGAN)
+@dp.callback_query(F.data.startswith("savdo_end"))
+async def on_savdo_end_clicked(call: types.CallbackQuery):
+    """Savdo tugatildi tugmasi bosilganda"""
     try:
-        parts = message.text.split()
-        if len(parts) != 3:
-            return await message.answer("❌ To'g'ri format: /endSavdo oluvchiID sotuvchiID")
+        data_parts = call.data.split(":")
+        oluvchi_id = int(data_parts[1])
+        sotuvchi_id = int(data_parts[2])
+        user_id = call.from_user.id
+
+        deal_key = (oluvchi_id, sotuvchi_id)
+
+        # Pending end deals (kim bosganini saqlaydi)
+        if "ended_deals" not in globals():
+            global ended_deals
+            ended_deals = {}
         
-        oluvchi_id = int(parts[1])
-        sotuvchi_id = int(parts[2])
+        if deal_key not in ended_deals:
+            ended_deals[deal_key] = set()
         
-        # Foydalanuvchi ma'lumotlari
-        oluvchi_info = await get_user_info(oluvchi_id)
-        sotuvchi_info = await get_user_info(sotuvchi_id)
-        
-        # Chiroy tugma yaratish
-        end_button = InlineKeyboardMarkup(
-            inline_keyboard=[[
-                InlineKeyboardButton(text="✅ SAVDO TUGATILDI", callback_data=f"savdo_end:{oluvchi_id}:{sotuvchi_id}")
-            ]]
-        )
-        
-        # Savdo tugatildi xabari tugma bilan
-        await message.answer(f"""
-❌ <b>SAVDO TUGATILDI!</b>
+        # Faqat oluvchi yoki sotuvchi bosishi mumkin
+        if user_id not in [oluvchi_id, sotuvchi_id]:
+            await call.answer("❌ Siz bu savdoga tegishli emassiz!", show_alert=True)
+            return
+
+        # Allaqachon bosgan bo‘lsa
+        if user_id in ended_deals[deal_key]:
+            await call.answer("⏳ Siz allaqachon rozilik bildirgansiz.", show_alert=True)
+            return
+
+        # Yangi rozilikni qo‘shish
+        ended_deals[deal_key].add(user_id)
+
+        # Kim bosdi — javob
+        if user_id == oluvchi_id:
+            await call.message.answer("📥 <b>Oluvchi savdoning tugaganiga rozi</b>")
+        elif user_id == sotuvchi_id:
+            await call.message.answer("📤 <b>Sotuvchi savdoning tugaganiga rozi</b>")
+
+        # Agar ikkala tomon ham rozi bo‘lsa:
+        if len(ended_deals[deal_key]) == 2:
+            await call.message.answer(f"""
+✅ <b>SAVDO YAKUNLANDI!</b>
 
 📋 <b>Oluvchi:</b> <a href='tg://user?id={oluvchi_id}'>OLUVCHI</a>
 📋 <b>Sotuvchi:</b> <a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a>
 
-🔒 Foydalanuvchilar yana mute qilinadi!
-        """, reply_markup=end_button)
-        
-        # Avtomatik mute qilish (bot o'zi komanda yubormaydi, to'g'ridan-to'g'ri funksiyani chaqiradi)
-        await revoke_permissions(oluvchi_id, sotuvchi_id, message)
-    
-    except ValueError:
-        await message.answer("❌ ID raqamlar noto'g'ri!")
+🔒 Har ikki tomon savdoning tugaganiga rozilik bildirdi.
+""")
+            # Oxirida pendingni tozalash
+            del ended_deals[deal_key]
+
+        await call.answer("✅ Rozilik qabul qilindi!", show_alert=True)
+
     except Exception as e:
-        await message.answer(f"❌ Xatolik: {str(e)}")
+        await call.answer(f"❌ Xatolik: {str(e)}", show_alert=True)
 
 # --- OLUVCHINI MUTE QILISH ---
 @dp.message(Command("endOluvchi"))
