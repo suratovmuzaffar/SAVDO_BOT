@@ -351,7 +351,7 @@ async def start_sotuvchi(message: types.Message):
         await message.answer(f"❌ Xatolik: {str(e)}")
 
 # --- SAVDO TUGATILDI TUGMASI --- (YANGILANGAN)
-@dp.callback_query(F.data.startswith("savdo_end"))
+@dp.callback_query(F.data.startswith("endSavdo"))
 async def on_savdo_end_clicked(call: types.CallbackQuery):
     """Savdo tugatildi tugmasi bosilganda"""
     try:
