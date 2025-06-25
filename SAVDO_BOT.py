@@ -26,7 +26,7 @@ dp = Dispatcher(storage=MemoryStorage())
 # --- FOYDALI FUNKSIYALAR ---
 pending_deals = {}
 ended_deals = {}
-active_deals = set()
+faol_savdolar = set()
 async def is_admin_or_owner(chat_id: int, user_id: int) -> bool:
     """Admin yoki owner ekanligini tekshiradi"""
     try:
@@ -197,6 +197,7 @@ async def on_roziman_clicked(call: types.CallbackQuery):
         
         # Ikkalasi ham roziman deGAn bo'lsa
         if len(pending_deals[deal_key]) == 2:
+            faol_savdolar.add((oluvchi_id, sotuvchi_id))
             # Foydalanuvchi ma'lumotlari
             oluvchi_info = await get_user_info(oluvchi_id)
             sotuvchi_info = await get_user_info(sotuvchi_id)
@@ -229,7 +230,6 @@ async def start_savdo(message: types.Message):
     # Faqat admin va owner uchun
     if not await is_admin_or_owner(message.chat.id, message.from_user.id):
         return await message.answer("⚠️ Faqat adminlar va ownerlar uchun!")
-    
     try:
         parts = message.text.split()
         if len(parts) != 3:
@@ -282,6 +282,7 @@ async def start_savdo(message: types.Message):
 @dp.callback_query(F.data.startswith("savdo_end"))
 async def on_savdo_end_clicked(call: types.CallbackQuery):
     """Savdo tuGAtildi tugmasi bosilGAnda - tugmaning o'zini yangilaydi"""
+    faol_savdolar.discard((oluvchi_id, sotuvchi_id))
     try:
         data_parts = call.data.split(":")
         oluvchi_id = int(data_parts[1])
@@ -380,7 +381,7 @@ async def end_savdo(message: types.Message):
     except ValueError:
         await message.answer("⚠️ ID raqamlar noto'g'ri!")
     except Exception as e:
-        await message.answer(f"⚠️ XATOLIK: {str(e)}")
+        await message.answer(f"⚠️ XATOLIK: {str(e)}") 
 
 # --- OLUVCHIGA YOZISH HUQUQI BERISH ---
 @dp.message(Command("startOluvchi"))
@@ -389,7 +390,6 @@ async def start_oluvchi(message: types.Message):
     # Faqat admin va owner uchun
     if not await is_admin_or_owner(message.chat.id, message.from_user.id):
         return await message.answer("⚠️ Faqat adminlar va ownerlar uchun!")
-    
     try:
         parts = message.text.split()
         if len(parts) != 2:
@@ -409,7 +409,6 @@ async def start_oluvchi(message: types.Message):
         await message.answer("⚠️ ID noto'g'ri!")
     except Exception as e:
         await message.answer(f"⚠️ XATOLIK: {str(e)}")
-
 
 # --- SOTUVCHIGA YOZISH HUQUQI BERISH ---
 @dp.message(Command("startSotuvchi"))
@@ -539,7 +538,6 @@ async def help_command(message: types.Message):
 async def full_savdo(message: types.Message):
     """FAOL SAVDOLAR RO‘YXATI — FAQAT ADMINLAR UCHUN"""
 
-    # ✅ Faqat admin yoki owner ko‘ra oladi
     if not await is_admin_or_owner(message.chat.id, message.from_user.id):
         return await message.answer("⚠️ FAQAT ADMINLAR VA OWNERLAR UCHUN!")
 
@@ -560,8 +558,8 @@ async def full_savdo(message: types.Message):
             index += 1
 
         # 🔐 2-QISM: SAVDO BOSHLANGAN, YAKUNI KUTILMOQDA
-        for (oluvchi_id, sotuvchi_id), bosGAnlar in ended_deals.items():
-            if len(bosGAnlar) < 2:
+        for (oluvchi_id, sotuvchi_id), bosganlar in ended_deals.items():
+            if len(bosganlar) < 2:
                 oluvchi_link = f"<a href='tg://user?id={oluvchi_id}'>OLUVCHI</a>"
                 sotuvchi_link = f"<a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a>"
 
@@ -571,11 +569,20 @@ async def full_savdo(message: types.Message):
                 text += f"📌 HOLATI: <b>🔵 SAVDO BOSHLANGAN</b>\n\n"
                 index += 1
 
-        # 📭 Hech qanday savdo topilmadi
+        # 🟢 3-QISM: REAL SAVDODAGILAR (rozi bo‘lganlar)
+        for (oluvchi_id, sotuvchi_id) in faol_savdolar:
+            oluvchi_link = f"<a href='tg://user?id={oluvchi_id}'>OLUVCHI</a>"
+            sotuvchi_link = f"<a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a>"
+
+            text += f"🔢 <b>SAVDO #{index}</b>\n"
+            text += f"👤 {oluvchi_link}\n"
+            text += f"🛒 {sotuvchi_link}\n"
+            text += f"📌 HOLATI: <b>🟢 SAVDO YURITILMOQDA</b>\n\n"
+            index += 1
+
         if index == 1:
             return await message.answer("📭 <b>HOZIRDA HECH QANDAY FAOL SAVDO YOʻQ!</b>")
-        
-        # ✅ Javob yuborish
+
         await message.answer(text)
 
     except Exception as e:
