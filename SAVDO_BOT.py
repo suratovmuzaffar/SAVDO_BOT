@@ -351,9 +351,10 @@ async def start_sotuvchi(message: types.Message):
         await message.answer(f"❌ Xatolik: {str(e)}")
 
 # --- SAVDO TUGATILDI TUGMASI --- (YANGILANGAN)
-@dp.callback_query(F.data.startswith("endSavdo"))
+# --- SAVDO TUGATILDI TUGMASI BOSILGANDA ---
+@dp.callback_query(F.data.startswith("savdo_end"))
 async def on_savdo_end_clicked(call: types.CallbackQuery):
-    """Savdo tugatildi tugmasi bosilganda"""
+    """Savdo tugatildi tugmasi bosilganda roziliklar nazorati"""
     try:
         data_parts = call.data.split(":")
         oluvchi_id = int(data_parts[1])
@@ -362,34 +363,34 @@ async def on_savdo_end_clicked(call: types.CallbackQuery):
 
         deal_key = (oluvchi_id, sotuvchi_id)
 
-        # Pending end deals (kim bosganini saqlaydi)
+        # Global ended_deals ro'yxatini e'lon qilish
+        global ended_deals
         if "ended_deals" not in globals():
-            global ended_deals
             ended_deals = {}
-        
+
         if deal_key not in ended_deals:
             ended_deals[deal_key] = set()
-        
-        # Faqat oluvchi yoki sotuvchi bosishi mumkin
+
+        # Faqat oluvchi yoki sotuvchi rozilik bera oladi
         if user_id not in [oluvchi_id, sotuvchi_id]:
             await call.answer("❌ Siz bu savdoga tegishli emassiz!", show_alert=True)
             return
 
-        # Allaqachon bosgan bo‘lsa
+        # Oldin bosganmi?
         if user_id in ended_deals[deal_key]:
             await call.answer("⏳ Siz allaqachon rozilik bildirgansiz.", show_alert=True)
             return
 
-        # Yangi rozilikni qo‘shish
+        # Yangi rozilikni qo‘shamiz
         ended_deals[deal_key].add(user_id)
 
-        # Kim bosdi — javob
+        # Kim bosganini e’lon qilamiz
         if user_id == oluvchi_id:
             await call.message.answer("📥 <b>Oluvchi savdoning tugaganiga rozi</b>")
         elif user_id == sotuvchi_id:
             await call.message.answer("📤 <b>Sotuvchi savdoning tugaganiga rozi</b>")
 
-        # Agar ikkala tomon ham rozi bo‘lsa:
+        # Ikkalasi ham bosganmi?
         if len(ended_deals[deal_key]) == 2:
             await call.message.answer(f"""
 ✅ <b>SAVDO YAKUNLANDI!</b>
@@ -398,8 +399,8 @@ async def on_savdo_end_clicked(call: types.CallbackQuery):
 📋 <b>Sotuvchi:</b> <a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a>
 
 🔒 Har ikki tomon savdoning tugaganiga rozilik bildirdi.
-""")
-            # Oxirida pendingni tozalash
+            """)
+            # Yakunlangandan so‘ng ro'yxatdan o‘chirish
             del ended_deals[deal_key]
 
         await call.answer("✅ Rozilik qabul qilindi!", show_alert=True)
