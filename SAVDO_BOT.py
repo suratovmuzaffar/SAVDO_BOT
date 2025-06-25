@@ -26,6 +26,7 @@ dp = Dispatcher(storage=MemoryStorage())
 # --- FOYDALI FUNKSIYALAR ---
 pending_deals = {}
 ended_deals = {}
+active_deals = set()
 async def is_admin_or_owner(chat_id: int, user_id: int) -> bool:
     """Admin yoki owner ekanligini tekshiradi"""
     try:
@@ -68,13 +69,13 @@ async def mute_user(user_id: int):
         return False
 
 async def unmute_user(user_id: int):
-    """Foydalanuvchini unmute qiladi (yozish huquqini beradi)"""
+    """Foydalanuvchini unmute qiladi (YOZISH HUQUQini beradi)"""
     try:
-        # Avval guruh default huquqlarini olish
+        # Avval guruh default HUQUQlarini olish
         chat = await bot.get_chat(GROUP_ID)
         default_permissions = chat.permissions
         
-        # Agar default permissions yo'q bo'lsa, to'liq huquqlarni berish
+        # AGAr default permissions yo'q bo'lsa, to'liq HUQUQlarni berish
         if not default_permissions:
             permissions = types.ChatPermissions(
                 can_send_messages=True,
@@ -99,7 +100,7 @@ async def unmute_user(user_id: int):
         return True
     except Exception as e:
         logging.error(f"Unmute xatoligi: {e}")
-        # Agar yuqoridagi usul ishlamasa, to'g'ridan-to'g'ri ban olib tashlash
+        # AGAr yuqoridagi usul ishlamasa, to'g'ridan-to'g'ri ban olib tashlash
         try:
             await bot.unban_chat_member(GROUP_ID, user_id, only_if_banned=False)
             return True
@@ -118,55 +119,108 @@ async def get_user_info(user_id: int) -> str:
     except:
         return f"ID: {user_id}"
 
-# YANGI FUNKSIYA: Foydalanuvchilarga huquq berish
+# YANGI FUNKSIYA: FoydalanuvchilarGA HUQUQ berish
 async def grant_permissions(oluvchi_id: int, sotuvchi_id: int, message: types.Message):
-    """Oluvchi va sotuvchiga yozish huquqlarini beradi"""
+    """Oluvchi va sotuvchiGA YOZISH HUQUQlarini beradi"""
     oluvchi_info = await get_user_info(oluvchi_id)
     sotuvchi_info = await get_user_info(sotuvchi_id)
     
-    # Oluvchiga huquq berish
+    # OluvchiGA HUQUQ berish
     oluvchi_success = await unmute_user(oluvchi_id)
     if oluvchi_success:
-        await message.answer(f"✅ Oluvchi <a href='tg://user?id={oluvchi_id}'>OLUVCHI</a> ga yozish huquqi berildi!")
+        await message.answer("✅ OLUVCHI MUTE DAN OLINDI!", show_alert=True)
     else:
-        await message.answer(f"❌ Oluvchi <a href='tg://user?id={oluvchi_id}'>OLUVCHI</a> ga huquq berishda xatolik!")
+        await message.answer("⚠️ MUTE QILISHDA XATOLIK YUZ BERDI!", show_alert=True)
+
     
-    # Sotuvchiga huquq berish
+    # SotuvchiGA HUQUQ berish
     sotuvchi_success = await unmute_user(sotuvchi_id)
     if sotuvchi_success:
-        await message.answer(f"✅ Sotuvchi <a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a> ga yozish huquqi berildi!")
+        await message.answer("✅ SOTUVCHI MUTE DAN OLINDI!", show_alert=True)
     else:
-        await message.answer(f"❌ Sotuvchi <a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a> ga huquq berishda xatolik!")
+        await message.answer("⚠️ MUTE QILISHDA XATOLIK YUZ BERDI!", show_alert=True)
 
 # YANGI FUNKSIYA: Foydalanuvchilarni mute qilish
 async def revoke_permissions(oluvchi_id: int, sotuvchi_id: int, message: types.Message):
-    """Oluvchi va sotuvchini mute qiladi"""
+    """OLUVCHI VA SOTUVCHI mute qiladi"""
     oluvchi_info = await get_user_info(oluvchi_id)
     sotuvchi_info = await get_user_info(sotuvchi_id)
     
     # Oluvchini mute qilish
     oluvchi_success = await mute_user(oluvchi_id)
     if oluvchi_success:
-        await message.answer(f"🔇 Oluvchi <a href='tg://user?id={oluvchi_id}'>OLUVCHI</a> mute qilindi!")
+        await message.answer("✅ OLUVCHI MUTE DAN OLINDI!", show_alert=True)
     else:
-        await message.answer(f"❌ Oluvchi <a href='tg://user?id={oluvchi_id}'>OLUVCHI</a> ni mute qilishda xatolik!")
+        await message.answer("⚠️ MUTE QILISHDA XATOLIK YUZ BERDI!", show_alert=True)
     
     # Sotuvchini mute qilish
     sotuvchi_success = await mute_user(sotuvchi_id)
     if sotuvchi_success:
-        await message.answer(f"🔇 Sotuvchi <a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a> mute qilindi!")
+        await message.answer("✅ SOTUVCHI MUTE DAN OLINDI!", show_alert=True)
     else:
-        await message.answer(f"❌ Sotuvchi <a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a> ni mute qilishda xatolik!")
+       await message.answer("⚠️ MUTE QILISHDA XATOLIK YUZ BERDI!", show_alert=True)
 
 # --- YANGI A'ZOLARNI MUTE QILISH ---
 @dp.message(F.new_chat_members)
 async def on_user_joined(message: types.Message):
-    """Yangi kirgan a'zolarni avtomatik mute qiladi"""
+    """YANGI KIRGAN AZOLARNI AVTOMATIK MUTE QILINDI"""
     for user in message.new_chat_members:
         if not user.is_bot:
             success = await mute_user(user.id)
             if success:
                 await message.answer(f"")
+
+# --- SAVDO BOSHLANDI ROZIMISIZ TUGMASI ---
+@dp.callback_query(F.data.startswith("roziman"))
+async def on_roziman_clicked(call: types.CallbackQuery):
+    """Roziman tugmasi bosilGAnda"""
+    try:
+        data_parts = call.data.split(":")
+        oluvchi_id = int(data_parts[1])
+        sotuvchi_id = int(data_parts[2])
+        user_id = call.from_user.id
+        
+        deal_key = (oluvchi_id, sotuvchi_id)
+        
+        # Savdo mavjudligini tekshirish
+        if deal_key not in pending_deals:
+            await call.answer("⚠️ Bu savdo topilmadi!", show_alert=True)
+            return
+        
+        # Faqat oluvchi yoki sotuvchi bosishi mumkin
+        if user_id not in [oluvchi_id, sotuvchi_id]:
+            await call.answer("⚠️ Siz bu savdoGA tegishli emassiz!", show_alert=True)
+            return
+        
+        # Rozilik qo'shish
+        pending_deals[deal_key].add(user_id)
+        
+        # Ikkalasi ham roziman deGAn bo'lsa
+        if len(pending_deals[deal_key]) == 2:
+            # Foydalanuvchi ma'lumotlari
+            oluvchi_info = await get_user_info(oluvchi_id)
+            sotuvchi_info = await get_user_info(sotuvchi_id)
+            
+            # Savdo boshlandi xabari
+            await call.message.answer(f"""
+✅ <b>SAVDO BOSHLANDI!</b>
+
+📋 <b>Oluvchi:</b> <a href='tg://user?id={oluvchi_id}'>OLUVCHI</a>
+📋 <b>Sotuvchi:</b> <a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a>
+
+🎯 Endi adminlar tomonidan YOZISH HUQUQi beriladi!
+            """)
+            
+            # Avtomatik HUQUQ berish (bot o'zi komanda yubormaydi, to'g'ridan-to'g'ri funksiyani chaqiradi)
+            await grant_permissions(oluvchi_id, sotuvchi_id, call.message)
+            
+            # Pending ro'yxatidan o'chirish
+            del pending_deals[deal_key]
+        else:
+            await call.answer("✅ Rozilik qabul qilindi! Ikkinchi tomonni kutmoqdamiz...", show_alert=True)
+    
+    except Exception as e:
+        await call.answer(f"⚠️ XATOLIK: {str(e)}", show_alert=True)
 
 # --- SAVDO BOSHLASH ---
 @dp.message(Command("startSavdo"))
@@ -174,12 +228,12 @@ async def start_savdo(message: types.Message):
     """Savdo jarayonini boshlaydi"""
     # Faqat admin va owner uchun
     if not await is_admin_or_owner(message.chat.id, message.from_user.id):
-        return await message.answer("❌ Faqat adminlar va ownerlar uchun!")
+        return await message.answer("⚠️ Faqat adminlar va ownerlar uchun!")
     
     try:
         parts = message.text.split()
         if len(parts) != 3:
-            return await message.answer("❌ To'g'ri format: /startSavdo oluvchiID sotuvchiID")
+            return await message.answer("⚠️ To'g'ri format: /startSavdo oluvchiID sotuvchiID")
         
         oluvchi_id = int(parts[1])
         sotuvchi_id = int(parts[2])
@@ -188,7 +242,7 @@ async def start_savdo(message: types.Message):
         oluvchi_info = await get_user_info(oluvchi_id)
         sotuvchi_info = await get_user_info(sotuvchi_id)
         
-        # Savdoni pending ro'yxatiga qo'shish
+        # Savdoni pending ro'yxatiGA qo'shish
         deal_key = (oluvchi_id, sotuvchi_id)
         pending_deals[deal_key] = set()
         
@@ -220,67 +274,14 @@ async def start_savdo(message: types.Message):
         await message.answer(f"{zayafka_text}\n\n👤 <b> <a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a> - <a href='tg://user?id={oluvchi_id}'>OLUVCHI</a></b>, roziligingizni bildiring:", reply_markup=sotuvchi_btn)
         
     except ValueError:
-        await message.answer("❌ ID raqamlar noto'g'ri!")
+        await message.answer("⚠️ ID raqamlar noto'g'ri!")
     except Exception as e:
-        await message.answer(f"❌ Xatolik: {str(e)}")
+        await message.answer(f"⚠️ XATOLIK: {str(e)}")
 
-# --- ROZIMAN TUGMASI BOSILGANDA ---
-@dp.callback_query(F.data.startswith("roziman"))
-async def on_roziman_clicked(call: types.CallbackQuery):
-    """Roziman tugmasi bosilganda"""
-    try:
-        data_parts = call.data.split(":")
-        oluvchi_id = int(data_parts[1])
-        sotuvchi_id = int(data_parts[2])
-        user_id = call.from_user.id
-        
-        deal_key = (oluvchi_id, sotuvchi_id)
-        
-        # Savdo mavjudligini tekshirish
-        if deal_key not in pending_deals:
-            await call.answer("❌ Bu savdo topilmadi!", show_alert=True)
-            return
-        
-        # Faqat oluvchi yoki sotuvchi bosishi mumkin
-        if user_id not in [oluvchi_id, sotuvchi_id]:
-            await call.answer("❌ Siz bu savdoga tegishli emassiz!", show_alert=True)
-            return
-        
-        # Rozilik qo'shish
-        pending_deals[deal_key].add(user_id)
-        
-        # Ikkalasi ham roziman degan bo'lsa
-        if len(pending_deals[deal_key]) == 2:
-            # Foydalanuvchi ma'lumotlari
-            oluvchi_info = await get_user_info(oluvchi_id)
-            sotuvchi_info = await get_user_info(sotuvchi_id)
-            
-            # Savdo boshlandi xabari
-            await call.message.answer(f"""
-✅ <b>SAVDO BOSHLANDI!</b>
-
-📋 <b>Oluvchi:</b> <a href='tg://user?id={oluvchi_id}'>OLUVCHI</a>
-📋 <b>Sotuvchi:</b> <a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a>
-
-🎯 Endi adminlar tomonidan yozish huquqi beriladi!
-            """)
-            
-            # Avtomatik huquq berish (bot o'zi komanda yubormaydi, to'g'ridan-to'g'ri funksiyani chaqiradi)
-            await grant_permissions(oluvchi_id, sotuvchi_id, call.message)
-            
-            # Pending ro'yxatidan o'chirish
-            del pending_deals[deal_key]
-        else:
-            await call.answer("✅ Rozilik qabul qilindi! Ikkinchi tomonni kutmoqdamiz...", show_alert=True)
-    
-    except Exception as e:
-        await call.answer(f"❌ Xatolik: {str(e)}", show_alert=True)
-
-# --- SAVDO TUGATILDI TUGMASI ---
-# --- SAVDO TUGATILDI TUGMASI ---
+# --- SAVDO TUGATILDI ROZIMISIZ TUGMASI ---
 @dp.callback_query(F.data.startswith("savdo_end"))
 async def on_savdo_end_clicked(call: types.CallbackQuery):
-    """Savdo tugatildi tugmasi bosilganda - tugmaning o'zini yangilaydi"""
+    """Savdo tuGAtildi tugmasi bosilGAnda - tugmaning o'zini yangilaydi"""
     try:
         data_parts = call.data.split(":")
         oluvchi_id = int(data_parts[1])
@@ -299,12 +300,12 @@ async def on_savdo_end_clicked(call: types.CallbackQuery):
 
         # Faqat oluvchi yoki sotuvchi bosishi mumkin
         if user_id not in [oluvchi_id, sotuvchi_id]:
-            await call.answer("❌ Siz bu savdoga tegishli emassiz!", show_alert=True)
+            await call.answer("⚠️ Siz bu savdoGA tegishli emassiz!", show_alert=True)
             return
 
-        # Allaqachon bosgan bo‘lsa
+        # Allaqachon bosGAn bo‘lsa
         if user_id in ended_deals[deal_key]:
-            await call.answer("⏳ Siz allaqachon bosgansiz.", show_alert=True)
+            await call.answer("⏳ Siz allaqachon bosGAnsiz.", show_alert=True)
             return
 
         # Rozilikni saqlaymiz
@@ -327,81 +328,27 @@ async def on_savdo_end_clicked(call: types.CallbackQuery):
         )
         await call.message.edit_reply_markup(reply_markup=new_markup)
 
-        # Hammasi bosilgan bo‘lsa – dictni tozalaymiz
+        # Hammasi bosilGAn bo‘lsa – dictni tozalaymiz
         if len(ended_deals[deal_key]) == 2:
             del ended_deals[deal_key]
 
         await call.answer("✅ Qabul qilindi")
 
     except Exception as e:
-        await call.answer(f"❌ Xatolik: {str(e)}", show_alert=True)
-
-# --- OLUVCHIGA YOZISH HUQUQI BERISH ---
-@dp.message(Command("startOluvchi"))
-async def start_oluvchi(message: types.Message):
-    """Oluvchiga yozish huquqini beradi"""
-    # Faqat admin va owner uchun
-    if not await is_admin_or_owner(message.chat.id, message.from_user.id):
-        return await message.answer("❌ Faqat adminlar va ownerlar uchun!")
-    
-    try:
-        parts = message.text.split()
-        if len(parts) != 2:
-            return await message.answer("❌ To'g'ri format: /startOluvchi oluvchiID")
-        
-        oluvchi_id = int(parts[1])
-        success = await unmute_user(oluvchi_id)
-        oluvchi_info = await get_user_info(oluvchi_id)
-        
-        if success:
-            await message.answer(f"✅ Oluvchi <a href='tg://user?id={oluvchi_id}'>OLUVCHI</a> ga yozish huquqi berildi!")
-        else:
-            await message.answer(f"❌ Oluvchi <a href='tg://user?id={oluvchi_id}'>OLUVCHI</a> ga huquq berishda xatolik!")
-    
-    except ValueError:
-        await message.answer("❌ ID noto'g'ri!")
-    except Exception as e:
-        await message.answer(f"❌ Xatolik: {str(e)}")
-
-# --- SOTUVCHIGA YOZISH HUQUQI BERISH ---
-@dp.message(Command("startSotuvchi"))
-async def start_sotuvchi(message: types.Message):
-    """Sotuvchiga yozish huquqini beradi"""
-    # Faqat admin va owner uchun
-    if not await is_admin_or_owner(message.chat.id, message.from_user.id):
-        return await message.answer("❌ Faqat adminlar va ownerlar uchun!")
-    
-    try:
-        parts = message.text.split()
-        if len(parts) != 2:
-            return await message.answer("❌ To'g'ri format: /startSotuvchi sotuvchiID")
-        
-        sotuvchi_id = int(parts[1])
-        success = await unmute_user(sotuvchi_id)
-        sotuvchi_info = await get_user_info(sotuvchi_id)
-        
-        if success:
-            await message.answer(f"✅ Sotuvchi <a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a> ga yozish huquqi berildi!")
-        else:
-            await message.answer(f"❌ Sotuvchi <a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a> ga huquq berishda xatolik!")
-    
-    except ValueError:
-        await message.answer("❌ ID noto'g'ri!")
-    except Exception as e:
-        await message.answer(f"❌ Xatolik: {str(e)}")
+        await call.answer(f"⚠️ XATOLIK: {str(e)}", show_alert=True)
 
 # --- SAVDONI TUGATISH ---
 @dp.message(Command("endSavdo"))
 async def end_savdo(message: types.Message):
-    """Savdo jarayonini tugatadi"""
+    """Savdo jarayonini tuGAtadi"""
     # Faqat admin va owner uchun
     if not await is_admin_or_owner(message.chat.id, message.from_user.id):
-        return await message.answer("❌ Faqat adminlar va ownerlar uchun!")
+        return await message.answer("⚠️ Faqat adminlar va ownerlar uchun!")
     
     try:
         parts = message.text.split()
         if len(parts) != 3:
-            return await message.answer("❌ To'g'ri format: /endSavdo oluvchiID sotuvchiID")
+            return await message.answer("⚠️ To'g'ri format: /endSavdo oluvchiID sotuvchiID")
         
         oluvchi_id = int(parts[1])
         sotuvchi_id = int(parts[2])
@@ -417,9 +364,9 @@ async def end_savdo(message: types.Message):
             ]]
         )
         
-        # Savdo tugatildi xabari tugma bilan
+        # Savdo tuGAtildi xabari tugma bilan
         await message.answer(f"""
-❌ <b>SAVDO TUGATILDI!</b>
+⚠️ <b>SAVDO TUGATILDI!</b>
 
 📋 <b>Oluvchi:</b> <a href='tg://user?id={oluvchi_id}'>OLUVCHI</a>
 📋 <b>Sotuvchi:</b> <a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a>
@@ -431,9 +378,66 @@ async def end_savdo(message: types.Message):
         await revoke_permissions(oluvchi_id, sotuvchi_id, message)
     
     except ValueError:
-        await message.answer("❌ ID raqamlar noto'g'ri!")
+        await message.answer("⚠️ ID raqamlar noto'g'ri!")
     except Exception as e:
-        await message.answer(f"❌ Xatolik: {str(e)}")
+        await message.answer(f"⚠️ XATOLIK: {str(e)}")
+
+# --- OLUVCHIGA YOZISH HUQUQI BERISH ---
+@dp.message(Command("startOluvchi"))
+async def start_oluvchi(message: types.Message):
+    """OluvchiGA YOZISH HUQUQini beradi"""
+    # Faqat admin va owner uchun
+    if not await is_admin_or_owner(message.chat.id, message.from_user.id):
+        return await message.answer("⚠️ Faqat adminlar va ownerlar uchun!")
+    
+    try:
+        parts = message.text.split()
+        if len(parts) != 2:
+            return await message.answer("⚠️ To'g'ri format: /startOluvchi oluvchiID")
+        
+        oluvchi_id = int(parts[1])
+        success = await unmute_user(oluvchi_id)
+        oluvchi_info = await get_user_info(oluvchi_id)
+        
+        if success:
+            await message.answer("✅ OLUVCHI MUTE DAN OLINDI!", show_alert=True)
+        else:
+            await message.answer("⚠️ MUTE QILISHDA XATOLIK YUZ BERDI!", show_alert=True)
+
+    
+    except ValueError:
+        await message.answer("⚠️ ID noto'g'ri!")
+    except Exception as e:
+        await message.answer(f"⚠️ XATOLIK: {str(e)}")
+
+
+# --- SOTUVCHIGA YOZISH HUQUQI BERISH ---
+@dp.message(Command("startSotuvchi"))
+async def start_sotuvchi(message: types.Message):
+    """SotuvchiGA YOZISH HUQUQini beradi"""
+    # Faqat admin va owner uchun
+    if not await is_admin_or_owner(message.chat.id, message.from_user.id):
+        return await message.answer("⚠️ Faqat adminlar va ownerlar uchun!")
+    
+    try:
+        parts = message.text.split()
+        if len(parts) != 2:
+            return await message.answer("⚠️ To'g'ri format: /startSotuvchi sotuvchiID")
+        
+        sotuvchi_id = int(parts[1])
+        success = await unmute_user(sotuvchi_id)
+        sotuvchi_info = await get_user_info(sotuvchi_id)
+        
+        if success:
+            await message.answer("✅ SOTUVCHI MUTE DAN OLINDI!", show_alert=True)
+        else:
+            await message.answer("⚠️ MUTE QILISHDA XATOLIK YUZ BERDI!", show_alert=True)
+
+    
+    except ValueError:
+        await message.answer("⚠️ ID noto'g'ri!")
+    except Exception as e:
+        await message.answer(f"⚠️ XATOLIK: {str(e)}")
 
 # --- OLUVCHINI MUTE QILISH ---
 @dp.message(Command("endOluvchi"))
@@ -441,26 +445,27 @@ async def end_oluvchi(message: types.Message):
     """Oluvchini mute qiladi"""
     # Faqat admin va owner uchun
     if not await is_admin_or_owner(message.chat.id, message.from_user.id):
-        return await message.answer("❌ Faqat adminlar va ownerlar uchun!")
+        return await message.answer("⚠️ Faqat adminlar va ownerlar uchun!")
     
     try:
         parts = message.text.split()
         if len(parts) != 2:
-            return await message.answer("❌ To'g'ri format: /endOluvchi oluvchiID")
+            return await message.answer("⚠️ To'g'ri format: /endOluvchi oluvchiID")
         
         oluvchi_id = int(parts[1])
         success = await mute_user(oluvchi_id)
         oluvchi_info = await get_user_info(oluvchi_id)
         
         if success:
-            await message.answer(f"🔇 Oluvchi <a href='tg://user?id={oluvchi_id}'>OLUVCHI</a> mute qilindi!")
+            await message.answer("❌ OLUVCHI MUTE QILINDI!", show_alert=True)
         else:
-            await message.answer(f"❌ Oluvchi <a href='tg://user?id={oluvchi_id}'>OLUVCHI</a> ni mute qilishda xatolik!")
+            await message.answer("⚠️ MUTE QILISHDA XATOLIK YUZ BERDI!", show_alert=True)
+
     
     except ValueError:
-        await message.answer("❌ ID noto'g'ri!")
+        await message.answer("⚠️ ID noto'g'ri!")
     except Exception as e:
-        await message.answer(f"❌ Xatolik: {str(e)}")
+        await message.answer(f"⚠️ XATOLIK: {str(e)}")
 
 # --- SOTUVCHINI MUTE QILISH ---
 @dp.message(Command("endSotuvchi"))
@@ -468,111 +473,129 @@ async def end_sotuvchi(message: types.Message):
     """Sotuvchini mute qiladi"""
     # Faqat admin va owner uchun
     if not await is_admin_or_owner(message.chat.id, message.from_user.id):
-        return await message.answer("❌ Faqat adminlar va ownerlar uchun!")
+        return await message.answer("⚠️ Faqat adminlar va ownerlar uchun!")
     
     try:
         parts = message.text.split()
         if len(parts) != 2:
-            return await message.answer("❌ To'g'ri format: /endSotuvchi sotuvchiID")
+            return await message.answer("⚠️ To'g'ri format: /endSotuvchi sotuvchiID")
         
         sotuvchi_id = int(parts[1])
         success = await mute_user(sotuvchi_id)
         sotuvchi_info = await get_user_info(sotuvchi_id)
         
         if success:
-            await message.answer(f"🔇 Sotuvchi <a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a> mute qilindi!")
+            await message.answer("❌ SOTUVCHI MUTE QILINDI!", show_alert=True)
         else:
-            await message.answer(f"❌ Sotuvchi <a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a> ni mute qilishda xatolik!")
-    
+            await message.answer("⚠️ MUTE QILISHDA XATOLIK YUZ BERDI!", show_alert=True)
+
     except ValueError:
-        await message.answer("❌ ID noto'g'ri!")
+        await message.answer("⚠️ ID noto'g'ri!")
     except Exception as e:
-        await message.answer(f"❌ Xatolik: {str(e)}")
+        await message.answer(f"⚠️ XATOLIK: {str(e)}")
 
 # --- YORDAM KOMANDASI ---
 @dp.message(Command("help"))
 async def help_command(message: types.Message):
-    """Barcha komandalar ro'yxati"""
+    """BARCHA KOMANDALAR RO‘YXATI — FAQAT ADMINLARGA"""
+
     if not await is_admin_or_owner(message.chat.id, message.from_user.id):
-        return await message.answer("❌ Faqat adminlar va ownerlar uchun!")
-    
+        return await message.answer("⚠️ FAQAT ADMINLAR VA OWNERLARGA RUXSAT!")
+
     help_text = """
-🤖 <b>SAVDO BOT KOMANDALAR:</b>
+🤖 <b>SAVDO BOT — KOMANDALAR</b>
 
-🎯 <b>Savdo jarayoni:</b>
-• <code>/startSavdo oluvchiID sotuvchiID</code> - Savdo boshlash
-• <code>/endSavdo oluvchiID sotuvchiID</code> - Savdo tugatish
+━━━━━━━━━━━━━━━━━━━━━
+🎯 <b>SAVDO BOSHLASH/TUGATISH:</b>
+━━━━━━━━━━━━━━━━━━━━━
+🚀 <code>/startSavdo OLUVCHI_ID SOTUVCHI_ID</code> — Savdoni boshlash  
+🛑 <code>/endSavdo OLUVCHI_ID SOTUVCHI_ID</code> — Savdoni tuGAtish
 
-👥 <b>Foydalanuvchilar:</b>
-• <code>/startOluvchi ID</code> - Oluvchiga yozish huquqi
-• <code>/startSotuvchi ID</code> - Sotuvchiga yozish huquqi
-• <code>/endOluvchi ID</code> - Oluvchini mute qilish
-• <code>/endSotuvchi ID</code> - Sotuvchini mute qilish
+━━━━━━━━━━━━━━━━━━━━━
+👥 <b>YOZISH HUQUQLARI:</b>
+━━━━━━━━━━━━━━━━━━━━━
+✉️ <code>/startOluvchi ID</code> — OluvchiGA YOZISH HUQUQi  
+✉️ <code>/startSotuvchi ID</code> — SotuvchiGA YOZISH HUQUQi  
+🔇 <code>/endOluvchi ID</code> — Oluvchini mute qilish  
+🔇 <code>/endSotuvchi ID</code> — Sotuvchini mute qilish
 
-• <code>/fullSavdo - Savdolarni toliq korsatish
+━━━━━━━━━━━━━━━━━━━━━
+📊 <b>FAOL SAVDOLAR:</b>
+━━━━━━━━━━━━━━━━━━━━━
+📋 <code>/fullSavdo</code> — Hozirgi barcha faol savdolarni ko‘rish
 
-ℹ️ <code>/help</code> - Bu yordam xabari
+━━━━━━━━━━━━━━━━━━━━━
+ℹ️ <b>YORDAM:</b>
+━━━━━━━━━━━━━━━━━━━━━
+🆘 <code>/help</code> — Yordam menyusi
 
-<b>Eslatma:</b> Yangi kirgan a'zolar avtomatik mute qilinadi!
-    """
+━━━━━━━━━━━━━━━━━━━━━
+❗ <b>ESLATMA:</b> Yangi kirGAnlar avtomatik <b>mute</b> qilinadi!
+━━━━━━━━━━━━━━━━━━━━━
+"""
     await message.answer(help_text)
-
-
+# --- HAMMA SAVDOLAR TOPLAMI ---
 @dp.message(Command("fullSavdo"))
 async def full_savdo(message: types.Message):
-    """Faol savdolar ro'yxatini chiqaradi"""
-    # Faqat adminlar ko‘ra oladi
+    """FAOL SAVDOLAR RO‘YXATI — FAQAT ADMINLAR UCHUN"""
+
+    # ✅ Faqat admin yoki owner ko‘ra oladi
     if not await is_admin_or_owner(message.chat.id, message.from_user.id):
-        return await message.answer("❌ Faqat adminlar uchun!")
+        return await message.answer("⚠️ FAQAT ADMINLAR VA OWNERLAR UCHUN!")
 
     try:
-        text = "<b>📋 Faol savdolar:</b>\n\n"
         index = 1
+        text = "<b>📊 FAOL SAVDOLAR ROʻYXATI</b>\n\n"
 
-        # Pending roziliklar
+        # 🔄 1-QISM: ROZILIK KUTILAYOTGAN SAVDOLAR
         for (oluvchi_id, sotuvchi_id), rozi_users in pending_deals.items():
             oluvchi_link = f"<a href='tg://user?id={oluvchi_id}'>OLUVCHI</a>"
             sotuvchi_link = f"<a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a>"
-            status = "🔄 Holat: Rozilik kutilmoqda" if len(rozi_users) < 2 else "✅ Holat: Rozilik berilgan"
+            holat = "🟡 ROZILIK KUTILMOQDA" if len(rozi_users) < 2 else "✅ ROZILIK BERILGAN"
 
-            text += f"{index}. 🧑‍💼 {oluvchi_link}\n"
-            text += f"   🛍️ {sotuvchi_link}\n"
-            text += f"   {status}\n\n"
+            text += f"🔢 <b>SAVDO #{index}</b>\n"
+            text += f"👤 {oluvchi_link}\n"
+            text += f"🛒 {sotuvchi_link}\n"
+            text += f"📌 HOLATI: <b>{holat}</b>\n\n"
             index += 1
 
-        # Ended deals — hali tugatishga rozilik berilmagan
-        for (oluvchi_id, sotuvchi_id), bosganlar in ended_deals.items():
-            if len(bosganlar) < 2:
+        # 🔐 2-QISM: SAVDO BOSHLANGAN, YAKUNI KUTILMOQDA
+        for (oluvchi_id, sotuvchi_id), bosGAnlar in ended_deals.items():
+            if len(bosGAnlar) < 2:
                 oluvchi_link = f"<a href='tg://user?id={oluvchi_id}'>OLUVCHI</a>"
                 sotuvchi_link = f"<a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a>"
-                text += f"{index}. 🧑‍💼 {oluvchi_link}\n"
-                text += f"   🛍️ {sotuvchi_link}\n"
-                text += f"   ⏳ Holat: Tugatishga rozilik kutilmoqda\n\n"
+
+                text += f"🔢 <b>SAVDO #{index}</b>\n"
+                text += f"👤 {oluvchi_link}\n"
+                text += f"🛒 {sotuvchi_link}\n"
+                text += f"📌 HOLATI: <b>🔵 SAVDO BOSHLANGAN</b>\n\n"
                 index += 1
 
+        # 📭 Hech qanday savdo topilmadi
         if index == 1:
-            await message.answer("✅ Hech qanday faol savdo yo‘q.")
-        else:
-            await message.answer(text)
+            return await message.answer("📭 <b>HOZIRDA HECH QANDAY FAOL SAVDO YOʻQ!</b>")
+        
+        # ✅ Javob yuborish
+        await message.answer(text)
 
     except Exception as e:
-        await message.answer(f"❌ Xatolik: {str(e)}")
+        await message.answer(f"⚠️ <b>XATOLIK:</b> {str(e)}")
 
 # --- BOTNI ISHGA TUSHIRISH ---
 async def main():
-    """Botni ishga tushirish"""
+    """Botni ishGA tushirish"""
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     
-    logging.info("Bot ishga tushmoqda...")
+    logging.info("Bot ishGA tushmoqda...")
 
     try:
         for admin_id in ADMINS:
             await bot.send_message(admin_id, "🤖 <b>BOT ISHGA TUSHDI!</b>")
     except Exception as e:
-        logging.warning(f"Adminlarga xabar yuborishda xatolik: {e}")
+        logging.warning(f"AdminlarGA xabar yuborishda XATOLIK: {e}")
     
     await dp.start_polling(bot)
 
