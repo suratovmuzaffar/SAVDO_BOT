@@ -509,6 +509,8 @@ async def help_command(message: types.Message):
 • <code>/endOluvchi ID</code> - Oluvchini mute qilish
 • <code>/endSotuvchi ID</code> - Sotuvchini mute qilish
 
+• <code>/fullSavdo - Savdolarni toliq korsatish
+
 ℹ️ <code>/help</code> - Bu yordam xabari
 
 <b>Eslatma:</b> Yangi kirgan a'zolar avtomatik mute qilinadi!
