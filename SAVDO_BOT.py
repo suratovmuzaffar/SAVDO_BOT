@@ -514,6 +514,47 @@ async def help_command(message: types.Message):
     """
     await message.answer(help_text)
 
+
+@dp.message(Command("fullSavdo"))
+async def full_savdo(message: types.Message):
+    """Faol savdolar ro'yxatini chiqaradi"""
+    # Faqat adminlar ko‘ra oladi
+    if not await is_admin_or_owner(message.chat.id, message.from_user.id):
+        return await message.answer("❌ Faqat adminlar uchun!")
+
+    try:
+        text = "<b>📋 Faol savdolar:</b>\n\n"
+        index = 1
+
+        # Pending roziliklar
+        for (oluvchi_id, sotuvchi_id), rozi_users in pending_deals.items():
+            oluvchi_link = f"<a href='tg://user?id={oluvchi_id}'>OLUVCHI</a>"
+            sotuvchi_link = f"<a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a>"
+            status = "🔄 Holat: Rozilik kutilmoqda" if len(rozi_users) < 2 else "✅ Holat: Rozilik berilgan"
+
+            text += f"{index}. 🧑‍💼 {oluvchi_link}\n"
+            text += f"   🛍️ {sotuvchi_link}\n"
+            text += f"   {status}\n\n"
+            index += 1
+
+        # Ended deals — hali tugatishga rozilik berilmagan
+        for (oluvchi_id, sotuvchi_id), bosganlar in ended_deals.items():
+            if len(bosganlar) < 2:
+                oluvchi_link = f"<a href='tg://user?id={oluvchi_id}'>OLUVCHI</a>"
+                sotuvchi_link = f"<a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a>"
+                text += f"{index}. 🧑‍💼 {oluvchi_link}\n"
+                text += f"   🛍️ {sotuvchi_link}\n"
+                text += f"   ⏳ Holat: Tugatishga rozilik kutilmoqda\n\n"
+                index += 1
+
+        if index == 1:
+            await message.answer("✅ Hech qanday faol savdo yo‘q.")
+        else:
+            await message.answer(text)
+
+    except Exception as e:
+        await message.answer(f"❌ Xatolik: {str(e)}")
+
 # --- BOTNI ISHGA TUSHIRISH ---
 async def main():
     """Botni ishga tushirish"""
@@ -523,6 +564,13 @@ async def main():
     )
     
     logging.info("Bot ishga tushmoqda...")
+
+    try:
+        for admin_id in ADMINS:
+            await bot.send_message(admin_id, "🤖 <b>BOT ISHGA TUSHDI!</b>")
+    except Exception as e:
+        logging.warning(f"Adminlarga xabar yuborishda xatolik: {e}")
+    
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
