@@ -282,7 +282,6 @@ async def start_savdo(message: types.Message):
 @dp.callback_query(F.data.startswith("savdo_end"))
 async def on_savdo_end_clicked(call: types.CallbackQuery):
     """Savdo tuGAtildi tugmasi bosilGAnda - tugmaning o'zini yangilaydi"""
-    faol_savdolar.discard((oluvchi_id, sotuvchi_id))
     try:
         data_parts = call.data.split(":")
         oluvchi_id = int(data_parts[1])
@@ -332,6 +331,7 @@ async def on_savdo_end_clicked(call: types.CallbackQuery):
         # Hammasi bosilGAn bo‘lsa – dictni tozalaymiz
         if len(ended_deals[deal_key]) == 2:
             del ended_deals[deal_key]
+            faol_savdolar.discard(deal_key)
 
         await call.answer("✅ Qabul qilindi")
 
