@@ -570,8 +570,19 @@ async def full_savdo(message: types.Message):
                 text += f"🔢 <b>SAVDO #{index}</b>\n"
                 text += f"👤 {oluvchi_link}\n"
                 text += f"🛒 {sotuvchi_link}\n"
-                text += f"📌 HOLATI: <b>🔵 SAVDO BOSHLANGAN</b>\n\n"
+                text += f"📌 HOLATI: <b>🟢 SAVDO YURITILMOQDA</b>\n\n"
                 index += 1
+
+        # 🟢 3-QISM: REAL SAVDODAGILAR (rozi bo‘lganlar)
+        for (oluvchi_id, sotuvchi_id) in faol_savdolar:
+            oluvchi_link = f"<a href='tg://user?id={oluvchi_id}'>OLUVCHI</a>"
+            sotuvchi_link = f"<a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a>"
+
+            text += f"🔢 <b>SAVDO #{index}</b>\n"
+            text += f"👤 {oluvchi_link}\n"
+            text += f"🛒 {sotuvchi_link}\n"
+            text += f"📌 HOLATI: <b>🔵 SAVDO BOSHLANGAN</b>\n\n"
+            index += 1
 
         if index == 1:
             return await message.answer("📭 <b>HOZIRDA HECH QANDAY FAOL SAVDO YOʻQ!</b>")
