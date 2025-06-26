@@ -217,6 +217,7 @@ async def on_roziman_clicked(call: types.CallbackQuery):
             
             # Pending ro'yxatidan o'chirish
             del pending_deals[deal_key]
+            ended_deals[deal_key] = set()
         else:
             await call.answer("✅ Rozilik qabul qilindi! Ikkinchi tomonni kutmoqdamiz...", show_alert=True)
     
@@ -562,16 +563,17 @@ async def full_savdo(message: types.Message):
             index += 1
 
 
-        # 🔵 2-QISM: REAL SAVDODAGILAR (rozi bo‘lganlar)
-        for (oluvchi_id, sotuvchi_id) in faol_savdolar:
+# 🔵 2-QISM: ROZILIK BERILGAN, YAKUN KUTILAYOTGAN SAVDOLAR
+        for (oluvchi_id, sotuvchi_id), rozi_users in ended_deals.items():
+           if len(rozi_users) < 2:
             oluvchi_link = f"<a href='tg://user?id={oluvchi_id}'>OLUVCHI</a>"
             sotuvchi_link = f"<a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a>"
 
-            text += f"🔢 <b>SAVDO #{index}</b>\n"
-            text += f"👤 {oluvchi_link}\n"
-            text += f"🛒 {sotuvchi_link}\n"
-            text += f"📌 HOLATI: <b>🔵 SAVDO BOSHLANGAN</b>\n\n"
-            index += 1
+        text += f"🔢 <b>SAVDO #{index}</b>\n"
+        text += f"👤 {oluvchi_link}\n"
+        text += f"🛒 {sotuvchi_link}\n"
+        text += f"📌 HOLATI: <b>🔵 SAVDO BOSHLANGAN</b>\n\n"
+        index += 1
 
         if index == 1:
             return await message.answer("📭 <b>HOZIRDA HECH QANDAY FAOL SAVDO YOʻQ!</b>")
