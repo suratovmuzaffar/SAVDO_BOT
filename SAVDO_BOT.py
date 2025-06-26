@@ -217,7 +217,6 @@ async def on_roziman_clicked(call: types.CallbackQuery):
             
             # Pending ro'yxatidan o'chirish
             del pending_deals[deal_key]
-            ended_deals[deal_key] = set()
         else:
             await call.answer("✅ Rozilik qabul qilindi! Ikkinchi tomonni kutmoqdamiz...", show_alert=True)
     
@@ -238,8 +237,6 @@ async def start_savdo(message: types.Message):
         
         oluvchi_id = int(parts[1])
         sotuvchi_id = int(parts[2])
-        
-        faol_savdolar.add((oluvchi_id, sotuvchi_id))
 
         
         # Foydalanuvchi ma'lumotlarini olish
@@ -293,12 +290,7 @@ async def on_savdo_end_clicked(call: types.CallbackQuery):
         user_id = call.from_user.id
 
         deal_key = (oluvchi_id, sotuvchi_id)
-
-        # Global ended_deals dictionary
-        global ended_deals
-        if "ended_deals" not in globals():
-            ended_deals = {}
-
+        
         if deal_key not in ended_deals:
             ended_deals[deal_key] = set()
 
@@ -550,30 +542,29 @@ async def full_savdo(message: types.Message):
         index = 1
         text = "<b>📊 FAOL SAVDOLAR ROʻYXATI</b>\n\n"
 
-        # 🔄 1-QISM: ROZILIK KUTILAYOTGAN SAVDOLAR
+        # 🟡 1-QISM: ROZILIK KUTILAYOTGAN SAVDOLAR
         for (oluvchi_id, sotuvchi_id), rozi_users in pending_deals.items():
-            oluvchi_link = f"<a href='tg://user?id={oluvchi_id}'>OLUVCHI</a>"
-            sotuvchi_link = f"<a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a>"
-            holat = "🟡 ROZILIK KUTILMOQDA" if len(rozi_users) < 2 else "✅ ROZILIK BERILGAN"
+            if len(rozi_users) < 2:
+                oluvchi_link = f"<a href='tg://user?id={oluvchi_id}'>OLUVCHI</a>"
+                sotuvchi_link = f"<a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a>"
 
-            text += f"🔢 <b>SAVDO #{index}</b>\n"
-            text += f"👤 {oluvchi_link}\n"
-            text += f"🛒 {sotuvchi_link}\n"
-            text += f"📌 HOLATI: <b>{holat}</b>\n\n"
-            index += 1
+                text += f"🔢 <b>SAVDO #{index}</b>\n"
+                text += f"👤 {oluvchi_link}\n"
+                text += f"🛒 {sotuvchi_link}\n"
+                text += f"📌 HOLATI: <b>🟡 ROZILIK KUTILMOQDA</b>\n\n"
+                index += 1
 
+        # 🔵 2-QISM: ROZILIK BERILGAN, LEKIN SAVDO TUGATILMAGANLAR
+        for (oluvchi_id, sotuvchi_id), bosganlar in ended_deals.items():
+            if len(bosganlar) < 2:
+                oluvchi_link = f"<a href='tg://user?id={oluvchi_id}'>OLUVCHI</a>"
+                sotuvchi_link = f"<a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a>"
 
-# 🔵 2-QISM: ROZILIK BERILGAN, YAKUN KUTILAYOTGAN SAVDOLAR
-        for (oluvchi_id, sotuvchi_id), rozi_users in ended_deals.items():
-           if len(rozi_users) < 2:
-            oluvchi_link = f"<a href='tg://user?id={oluvchi_id}'>OLUVCHI</a>"
-            sotuvchi_link = f"<a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a>"
-
-        text += f"🔢 <b>SAVDO #{index}</b>\n"
-        text += f"👤 {oluvchi_link}\n"
-        text += f"🛒 {sotuvchi_link}\n"
-        text += f"📌 HOLATI: <b>🔵 SAVDO BOSHLANGAN</b>\n\n"
-        index += 1
+                text += f"🔢 <b>SAVDO #{index}</b>\n"
+                text += f"👤 {oluvchi_link}\n"
+                text += f"🛒 {sotuvchi_link}\n"
+                text += f"📌 HOLATI: <b>🔵 SAVDO BOSHLANDI</b>\n\n"
+                index += 1
 
         if index == 1:
             return await message.answer("📭 <b>HOZIRDA HECH QANDAY FAOL SAVDO YOʻQ!</b>")
