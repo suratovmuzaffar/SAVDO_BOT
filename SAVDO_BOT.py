@@ -561,19 +561,8 @@ async def full_savdo(message: types.Message):
             text += f"📌 HOLATI: <b>{holat}</b>\n\n"
             index += 1
 
-        # 🔐 2-QISM: SAVDO BOSHLANGAN, YAKUNI KUTILMOQDA
-        for (oluvchi_id, sotuvchi_id), bosganlar in ended_deals.items():
-            if len(bosganlar) < 2:
-                oluvchi_link = f"<a href='tg://user?id={oluvchi_id}'>OLUVCHI</a>"
-                sotuvchi_link = f"<a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a>"
 
-                text += f"🔢 <b>SAVDO #{index}</b>\n"
-                text += f"👤 {oluvchi_link}\n"
-                text += f"🛒 {sotuvchi_link}\n"
-                text += f"📌 HOLATI: <b>🟢 SAVDO YURITILMOQDA</b>\n\n"
-                index += 1
-
-        # 🟢 3-QISM: REAL SAVDODAGILAR (rozi bo‘lganlar)
+        # 🔵 2-QISM: REAL SAVDODAGILAR (rozi bo‘lganlar)
         for (oluvchi_id, sotuvchi_id) in faol_savdolar:
             oluvchi_link = f"<a href='tg://user?id={oluvchi_id}'>OLUVCHI</a>"
             sotuvchi_link = f"<a href='tg://user?id={sotuvchi_id}'>SOTUVCHI</a>"
